@@ -1,3 +1,1 @@
-struct AiState {
-    actions: Vec<>
-}
+

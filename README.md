@@ -1,5 +1,5 @@
 # Oxidizing Agents AI - j
-This is a simple yet functional AI for the oxidizing agents robot
+This is a simple yet functional AI for the oxidizing agents robot.
 
 ### Logic
 These ai uses a priority queue (PQ) for storing tasks to perform.
@@ -22,4 +22,4 @@ On each process tick the ai performs the following actions:
 4. Completion: if task is completed, then set the `current_task` to None, otherwise it will be continued in the following process tick.
 
 ### Real-time monitoring
-Considering making a web server with HTMX for the frontend and websockets to allow viewing the performed tasks in real-time
+Considering making a web server with HTMX for the frontend and websockets to allow viewing the performed tasks in real-time.
