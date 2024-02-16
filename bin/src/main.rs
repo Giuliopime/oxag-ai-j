@@ -1,10 +1,14 @@
-use robotics_lib::runner::{Robot, Runner};
-use std::time::Duration;
-use std::thread::sleep;
-use worldgen_unwrap::public::WorldgeneratorUnwrap;
 use oxag_ai_j::robot::TrashinatorRobot;
+use robotics_lib::runner::{Robot, Runner};
+use std::thread::sleep;
+use std::time::Duration;
+use env_logger::init_from_env;
+use worldgen_unwrap::public::WorldgeneratorUnwrap;
+use env_logger::Builder;
+use log::LevelFilter;
 
 fn main() {
+    Builder::new().filter_level(LevelFilter::max()).init();
     let ai_robot = TrashinatorRobot::new(Robot::new());
 
     let mut gen = WorldgeneratorUnwrap::init(false, None);
