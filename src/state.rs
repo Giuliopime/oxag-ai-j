@@ -1,10 +1,11 @@
 use crate::models::task::Task;
 use charting_tools::charted_coordinate::ChartedCoordinate;
-use priority_queue::PriorityQueue;
-use std::collections::HashSet;
 use charting_tools::charted_map::ChartedMap;
-use robotics_lib::world::tile::{Content, TileType};
-use robotics_lib::world::tile::TileType::Teleport;
+use charting_tools::ChartingTools;
+use priority_queue::PriorityQueue;
+use robotics_lib::interface::Direction;
+use robotics_lib::world::tile::TileType;
+use std::collections::HashSet;
 
 /// State required for the AI to take decisions
 ///
@@ -16,7 +17,9 @@ pub(crate) struct AiState {
     pub(crate) pq: PriorityQueue<Task, usize>,
     pub(crate) current_task: Option<Task>,
     pub(crate) marked_coords: HashSet<ChartedCoordinate>,
-    pub(crate) charted_map: ChartedMap<TileType>
+    pub(crate) charted_map: ChartedMap<TileType>,
+    pub(crate) previous_move_direction: Option<Direction>,
+    pub(crate) previous_one_directional_view_direction: Option<Direction>,
 }
 
 impl AiState {
@@ -25,7 +28,9 @@ impl AiState {
             pq: PriorityQueue::new(),
             current_task: None,
             marked_coords: HashSet::new(),
-            charted_map: ChartedMap::new()
+            charted_map: ChartingTools::tool::<ChartedMap<TileType>>().unwrap(),
+            previous_move_direction: None,
+            previous_one_directional_view_direction: None,
         }
     }
 }

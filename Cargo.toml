@@ -1,4 +1,3 @@
-workspace = { members = ["bin"] }
 [package]
 name = "oxag_ai_j"
 version = "0.1.0"
@@ -18,3 +17,5 @@ OwnerSheeps_Sound_Tool = { version = "0.1.0", registry = "kellnr" }
 charting_tools = { version = "1.0.7", registry = "kellnr" }
 AStar_conRUSTulazioni = { version = "0.1.0", registry = "kellnr" }
 priority-queue = "1.4.0"
+log = "0.4.20"
+rand = "0.8.5"

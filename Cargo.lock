@@ -470,16 +470,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
-name = "bin"
-version = "0.1.0"
-dependencies = [
- "oxag_ai_j",
- "priority-queue",
- "robotics_lib",
- "worldgen_unwrap",
-]
-
-[[package]]
 name = "binary-stream"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2408,7 +2398,9 @@ dependencies = [
  "bob_lib",
  "charting_tools",
  "ghost_journey_journal",
+ "log",
  "priority-queue",
+ "rand 0.8.5",
  "resource-scanner-tool",
  "robotics_lib",
  "worldgen_unwrap",
