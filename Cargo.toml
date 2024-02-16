@@ -1,7 +1,9 @@
+workspace = { members = ["bin"] }
 [package]
-name = "oxag-ai-j"
+name = "oxag_ai_j"
 version = "0.1.0"
 edition = "2021"
+authors = ["Giulio Pimenoff Verdolin"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
