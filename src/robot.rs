@@ -1,17 +1,14 @@
+use std::cell::{Ref, RefCell};
+use std::rc::Rc;
 use crate::models::task::{Task, TaskAction};
 use crate::state::AiState;
 use charting_tools::charted_coordinate::ChartedCoordinate;
-use log::{debug, error, info};
+use log::{debug, error};
 use rand::Rng;
-use robotics_lib::energy::Energy;
-use robotics_lib::event::events::Event;
 use robotics_lib::interface::{
     destroy, go, one_direction_view, put, robot_view, teleport, Direction,
 };
-use robotics_lib::runner::backpack::BackPack;
 use robotics_lib::runner::{Robot, Runnable};
-use robotics_lib::utils::calculate_cost_go_with_environment;
-use robotics_lib::world::coordinates::Coordinate;
 use robotics_lib::world::tile::Content::{Bin, Fire, Garbage};
 use robotics_lib::world::tile::{Tile, TileType};
 use robotics_lib::world::World;
@@ -19,14 +16,14 @@ use robotics_lib::world::World;
 /// A fully functioning AI driven robot that cleans up garbage and extinguishes fire
 pub struct TrashinatorRobot {
     pub robot: Robot,
-    pub(crate) state: AiState,
+    pub(crate) state: Rc<RefCell<AiState>>,
 }
 
 impl TrashinatorRobot {
     pub fn new(robot: Robot) -> TrashinatorRobot {
         TrashinatorRobot {
             robot,
-            state: AiState::new(),
+            state: Rc::new(RefCell::new(AiState::new())),
         }
     }
 }
@@ -39,7 +36,7 @@ impl Default for TrashinatorRobot {
 
 impl TrashinatorRobot {
     /// Discovers new tiles and populates the pq
-    fn discover_tiles_and_populate_pq(&mut self, world: &mut World) {
+    pub(crate) fn discover_tiles_and_populate_pq(&mut self, world: &mut World) {
         let view = robot_view(self, world);
 
         for (row, row_tiles) in view.iter().enumerate() {
@@ -58,7 +55,7 @@ impl TrashinatorRobot {
     }
 
     /// Discovers new tiles using the one directional view and populates the pq
-    fn discover_tiles_one_direction_and_populate_pq(&mut self, world: &mut World) {
+    pub(crate) fn discover_tiles_one_direction_and_populate_pq(&mut self, world: &mut World) {
         let direction = Self::calculate_random_direction_with_weighted_previous_direction(
             &self.state.previous_one_directional_view_direction,
         );
@@ -102,104 +99,7 @@ impl TrashinatorRobot {
         };
     }
 
-    fn calculate_random_direction_with_weighted_previous_direction(
-        previous: &Option<Direction>,
-    ) -> Direction {
-        let left = if *previous == Some(Direction::Right) {
-            50
-        } else {
-            100
-        };
-        let right = if *previous == Some(Direction::Left) {
-            50
-        } else {
-            100
-        };
-        let up = if *previous == Some(Direction::Down) {
-            50
-        } else {
-            100
-        };
-        let down = if *previous == Some(Direction::Up) {
-            50
-        } else {
-            100
-        };
-
-        let left_random = rand::thread_rng().gen_range(0..left);
-        let right_random = rand::thread_rng().gen_range(0..right);
-        let up_random = rand::thread_rng().gen_range(0..up);
-        let down_random = rand::thread_rng().gen_range(0..down);
-
-        let vec_of_randoms = vec![
-            (left_random, Direction::Left),
-            (right_random, Direction::Right),
-            (up_random, Direction::Up),
-            (down_random, Direction::Down),
-        ];
-
-        debug!("Calculating randoms with vec: {:?}", vec_of_randoms);
-
-        let mut max = -1;
-        let mut direction = Direction::Left;
-
-        for rand in vec_of_randoms {
-            if rand.0 > max {
-                max = rand.0;
-                direction = rand.1;
-            }
-        }
-
-        return direction;
-    }
-
-    /// Populates the pq given a tile with its coordinates
-    fn populate_pq(&mut self, tile: &Tile, coordinate: (usize, usize)) {
-        let charted_coordinates = &ChartedCoordinate::new(coordinate.0, coordinate.1);
-
-        if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true)
-        {
-            self.state
-                .charted_map
-                .save(&tile.tile_type, charted_coordinates);
-            debug!("Saved teleport tile at coordinates {}", charted_coordinates)
-        }
-
-        let action = match tile.content {
-            Garbage(_) => Some(TaskAction::DestroyGarbage),
-            Fire => Some(TaskAction::DestroyFire),
-            Bin(_) => self
-                .get_backpack()
-                .get_contents()
-                .get(&Garbage(0))
-                .map(|garbage| {
-                    if garbage.to_owned() > 5 {
-                        Some(TaskAction::PutGarbageInBin)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(None),
-            _ => None,
-        };
-
-        if let Some(action) = action {
-            if !self.state.marked_coords.contains(charted_coordinates) {
-                self.state.marked_coords.insert(charted_coordinates.clone());
-
-                let priority = action.get_priority_for_task();
-                let task = Task::new(action, (coordinate.0, coordinate.1));
-
-                debug!("Added task to pq: {}", task);
-
-                self.state.pq.push(task, priority);
-            }
-        } else {
-            debug!("Didn't detect any task")
-        }
-    }
-
-    fn determine_current_task(&mut self) {
+    pub(crate) fn determine_current_task(&mut self) {
         if self.state.current_task.is_none() {
             self.state.current_task = self.state.pq.pop().map(|(task, _)| task);
         }
@@ -210,7 +110,7 @@ impl TrashinatorRobot {
     }
 
     /// Executes the current task
-    fn execute_task(&mut self, world: &mut World) {
+    pub(crate) fn execute_task(&mut self, world: &mut World) {
         match &self.state.current_task {
             None => {
                 let current_coordinates = self.get_coordinate();
@@ -325,6 +225,103 @@ impl TrashinatorRobot {
         }
     }
 
+    fn calculate_random_direction_with_weighted_previous_direction(
+        previous: &Option<Direction>,
+    ) -> Direction {
+        let left = if *previous == Some(Direction::Right) {
+            50
+        } else {
+            100
+        };
+        let right = if *previous == Some(Direction::Left) {
+            50
+        } else {
+            100
+        };
+        let up = if *previous == Some(Direction::Down) {
+            50
+        } else {
+            100
+        };
+        let down = if *previous == Some(Direction::Up) {
+            50
+        } else {
+            100
+        };
+
+        let left_random = rand::thread_rng().gen_range(0..left);
+        let right_random = rand::thread_rng().gen_range(0..right);
+        let up_random = rand::thread_rng().gen_range(0..up);
+        let down_random = rand::thread_rng().gen_range(0..down);
+
+        let vec_of_randoms = vec![
+            (left_random, Direction::Left),
+            (right_random, Direction::Right),
+            (up_random, Direction::Up),
+            (down_random, Direction::Down),
+        ];
+
+        debug!("Calculating randoms with vec: {:?}", vec_of_randoms);
+
+        let mut max = -1;
+        let mut direction = Direction::Left;
+
+        for rand in vec_of_randoms {
+            if rand.0 > max {
+                max = rand.0;
+                direction = rand.1;
+            }
+        }
+
+        return direction;
+    }
+
+    /// Populates the pq given a tile with its coordinates
+    fn populate_pq(&mut self, tile: &Tile, coordinate: (usize, usize)) {
+        let charted_coordinates = &ChartedCoordinate::new(coordinate.0, coordinate.1);
+
+        if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true)
+        {
+            self.state
+                .charted_map
+                .save(&tile.tile_type, charted_coordinates);
+            debug!("Saved teleport tile at coordinates {}", charted_coordinates)
+        }
+
+        let action = match tile.content {
+            Garbage(_) => Some(TaskAction::DestroyGarbage),
+            Fire => Some(TaskAction::DestroyFire),
+            Bin(_) => self
+                .get_backpack()
+                .get_contents()
+                .get(&Garbage(0))
+                .map(|garbage| {
+                    if garbage.to_owned() > 5 {
+                        Some(TaskAction::PutGarbageInBin)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(None),
+            _ => None,
+        };
+
+        if let Some(action) = action {
+            if !self.state.marked_coords.contains(charted_coordinates) {
+                self.state.marked_coords.insert(charted_coordinates.clone());
+
+                let priority = action.get_priority_for_task();
+                let task = Task::new(action, (coordinate.0, coordinate.1));
+
+                debug!("Added task to pq: {}", task);
+
+                self.state.pq.push(task, priority);
+            }
+        } else {
+            debug!("Didn't detect any task")
+        }
+    }
+
     /// Determines the action that the robot needs to perform in order to get closer to the
     /// completion of the task
     ///
@@ -385,42 +382,5 @@ impl TrashinatorRobot {
                 None => Err(()),
             }
         };
-    }
-}
-
-impl Runnable for TrashinatorRobot {
-    fn process_tick(&mut self, world: &mut World) {
-        let energy = self.get_energy().get_energy_level();
-
-        if energy > 50 && energy % 2 == 0 {
-            self.discover_tiles_one_direction_and_populate_pq(world);
-        } else {
-            self.discover_tiles_and_populate_pq(world);
-        }
-
-        self.determine_current_task();
-        self.execute_task(world);
-    }
-
-    fn handle_event(&mut self, event: Event) {
-        info!("Event - {}", event);
-    }
-    fn get_energy(&self) -> &Energy {
-        &self.robot.energy
-    }
-    fn get_energy_mut(&mut self) -> &mut Energy {
-        &mut self.robot.energy
-    }
-    fn get_coordinate(&self) -> &Coordinate {
-        &self.robot.coordinate
-    }
-    fn get_coordinate_mut(&mut self) -> &mut Coordinate {
-        &mut self.robot.coordinate
-    }
-    fn get_backpack(&self) -> &BackPack {
-        &self.robot.backpack
-    }
-    fn get_backpack_mut(&mut self) -> &mut BackPack {
-        &mut self.robot.backpack
     }
 }

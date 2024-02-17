@@ -15,16 +15,11 @@ fn main() {
 
     println!("Running!");
 
-    let run = Runner::new(Box::new(ai_robot), &mut gen);
+    let run = Runner::new(Box::new(ai_robot), &mut gen).unwrap();
 
-    match run {
-        Ok(mut r) => {
-            let _ = loop {
-                let _ = r.game_tick();
-                sleep(Duration::from_millis(1000));
-                println!("-----------------");
-            };
-        }
-        Err(e) => println!("{:?}", e),
-    }
+    let _ = loop {
+        let _ = run.game_tick();
+        sleep(Duration::from_millis(1000));
+        println!("-----------------");
+    };
 }
