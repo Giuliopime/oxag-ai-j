@@ -1,0 +1,1 @@
+{"rustc":13833583445748798061,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[733838423829139342,"build_script_build",false,377784587149928100]],"local":[{"RerunIfChanged":{"output":"debug/build/priority-queue-2e81508a73bd48a7/output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}

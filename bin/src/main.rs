@@ -5,17 +5,16 @@ use std::time::Duration;
 use env_logger::init_from_env;
 use worldgen_unwrap::public::WorldgeneratorUnwrap;
 use env_logger::Builder;
-use log::LevelFilter;
 
 fn main() {
-    Builder::new().filter_level(LevelFilter::max()).init();
+    // Builder::new().filter_level(LevelFilter::max()).init();
     let ai_robot = TrashinatorRobot::new(Robot::new());
 
     let mut gen = WorldgeneratorUnwrap::init(false, None);
 
     println!("Running!");
 
-    let run = Runner::new(Box::new(ai_robot), &mut gen).unwrap();
+    let mut run = Runner::new(Box::new(ai_robot), &mut gen).unwrap();
 
     let _ = loop {
         let _ = run.game_tick();

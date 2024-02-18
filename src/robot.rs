@@ -35,6 +35,11 @@ impl Default for TrashinatorRobot {
 }
 
 impl TrashinatorRobot {
+    /// Properly sets the state for a new process tick
+    pub(crate) fn prepare_for_new_tick(&mut self) {
+        self.state.clone().borrow_mut().discovered_tiles = vec![];
+        self.state.clone().borrow_mut().events_of_tick = vec![];
+    }
     /// Discovers new tiles and populates the pq
     pub(crate) fn discover_tiles_and_populate_pq(&mut self, world: &mut World) {
         let view = robot_view(self, world);
@@ -47,6 +52,8 @@ impl TrashinatorRobot {
                         let action_row = self.get_coordinate().get_row() + row - 1;
                         let action_col = self.get_coordinate().get_col() + col - 1;
 
+                        self.state.clone().borrow_mut().discovered_tiles.push((tile.clone(), (action_row, action_col)));
+
                         self.populate_pq(tile, (action_row, action_col));
                     }
                 }
@@ -57,7 +64,7 @@ impl TrashinatorRobot {
     /// Discovers new tiles using the one directional view and populates the pq
     pub(crate) fn discover_tiles_one_direction_and_populate_pq(&mut self, world: &mut World) {
         let direction = Self::calculate_random_direction_with_weighted_previous_direction(
-            &self.state.previous_one_directional_view_direction,
+            &self.state.borrow().previous_one_directional_view_direction,
         );
 
         let view = one_direction_view(self, world, direction.clone(), 4);
@@ -66,32 +73,35 @@ impl TrashinatorRobot {
             Ok(view) => {
                 for (x, row_tiles) in view.iter().enumerate() {
                     for (y, tile) in row_tiles.iter().enumerate() {
-                        match direction {
+                        let (row, col) = match direction {
                             Direction::Up => {
                                 let row = self.get_coordinate().get_row() + y + 1;
                                 let col = self.get_coordinate().get_col() + x - 1;
 
-                                self.populate_pq(tile, (row, col));
+                                (row, col)
                             }
                             Direction::Down => {
                                 let row = self.get_coordinate().get_row() - y - 1;
                                 let col = self.get_coordinate().get_col() + x - 1;
 
-                                self.populate_pq(tile, (row, col));
+                                (row, col)
                             }
                             Direction::Left => {
                                 let row = self.get_coordinate().get_row() + x - 1;
                                 let col = self.get_coordinate().get_col() - y - 1;
 
-                                self.populate_pq(tile, (row, col));
+                                (row, col)
                             }
                             Direction::Right => {
                                 let row = self.get_coordinate().get_row() + x - 1;
                                 let col = self.get_coordinate().get_col() + y + 1;
 
-                                self.populate_pq(tile, (row, col));
+                                (row, col)
                             }
-                        }
+                        };
+
+                        self.state.clone().borrow_mut().discovered_tiles.push((tile.clone(), (row, col)));
+                        self.populate_pq(tile, (row, col));
                     }
                 }
             }
@@ -100,24 +110,28 @@ impl TrashinatorRobot {
     }
 
     pub(crate) fn determine_current_task(&mut self) {
-        if self.state.current_task.is_none() {
-            self.state.current_task = self.state.pq.pop().map(|(task, _)| task);
+        if self.state.clone().borrow().current_task.is_none() {
+            let new_task = self.state.clone().borrow_mut().pq.pop().map(|(task, _)| task);
+            self.state.clone().borrow_mut().current_task = new_task;
         }
 
-        if let Some(task) = &self.state.current_task {
+        if let Some(task) = &self.state.clone().borrow().current_task {
             debug!("Determined current task: {}", task);
         }
     }
 
     /// Executes the current task
     pub(crate) fn execute_task(&mut self, world: &mut World) {
-        match &self.state.current_task {
+        match &self.state.clone().borrow().current_task {
             None => {
                 let current_coordinates = self.get_coordinate();
                 let current_row = current_coordinates.get_row();
                 let current_col = current_coordinates.get_col();
 
-                let teleports = &self.state.charted_map.get(&TileType::Teleport(true));
+                // TODO: Check
+                let cloned_state = self.state.clone();
+                let state = cloned_state.borrow_mut();
+                let teleports = state.charted_map.get(&TileType::Teleport(true));
                 let mut target_telepor_coordinates = None;
 
                 if let Some(teleports) = teleports {
@@ -151,7 +165,7 @@ impl TrashinatorRobot {
                 }
 
                 let direction = Self::calculate_random_direction_with_weighted_previous_direction(
-                    &self.state.previous_move_direction,
+                    &self.state.clone().borrow().previous_move_direction,
                 );
                 let go_res = go(self, world, direction.clone());
 
@@ -208,7 +222,7 @@ impl TrashinatorRobot {
                             }
                         };
 
-                        self.state.current_task = None;
+                        self.state.clone().borrow_mut().current_task = None;
                     } else {
                         let res = go(self, world, direction.clone());
 
@@ -283,6 +297,8 @@ impl TrashinatorRobot {
         if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true)
         {
             self.state
+                .clone()
+                .borrow_mut()
                 .charted_map
                 .save(&tile.tile_type, charted_coordinates);
             debug!("Saved teleport tile at coordinates {}", charted_coordinates)
@@ -307,15 +323,15 @@ impl TrashinatorRobot {
         };
 
         if let Some(action) = action {
-            if !self.state.marked_coords.contains(charted_coordinates) {
-                self.state.marked_coords.insert(charted_coordinates.clone());
+            if !self.state.clone().borrow().marked_coords.contains(charted_coordinates) {
+                self.state.clone().borrow_mut().marked_coords.insert(charted_coordinates.clone());
 
                 let priority = action.get_priority_for_task();
                 let task = Task::new(action, (coordinate.0, coordinate.1));
 
                 debug!("Added task to pq: {}", task);
 
-                self.state.pq.push(task, priority);
+                self.state.clone().borrow_mut().pq.push(task, priority);
             }
         } else {
             debug!("Didn't detect any task")

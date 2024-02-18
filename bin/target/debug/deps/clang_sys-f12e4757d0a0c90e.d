@@ -1,0 +1,14 @@
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/deps/libclang_sys-f12e4757d0a0c90e.rmeta: /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/lib.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/support.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/link.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/macros.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/common.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/dynamic.rs
+
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/deps/libclang_sys-f12e4757d0a0c90e.rlib: /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/lib.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/support.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/link.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/macros.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/common.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/dynamic.rs
+
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/deps/clang_sys-f12e4757d0a0c90e.d: /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/lib.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/support.rs /Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/link.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/macros.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/common.rs /Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/dynamic.rs
+
+/Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/lib.rs:
+/Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/support.rs:
+/Users/j/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clang-sys-1.7.0/src/link.rs:
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/macros.rs:
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/common.rs:
+/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out/dynamic.rs:
+
+# env-dep:OUT_DIR=/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/clang-sys-05c22ff74b818916/out
