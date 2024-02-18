@@ -1,1 +1,0 @@
-cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/j/ghq/github.com/Giuliopime/oxag-ai-j/bin/target/debug/build/mime_guess2-75f23fde252d83af/out/mime_types_generated.rs
