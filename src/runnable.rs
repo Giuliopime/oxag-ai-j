@@ -17,6 +17,8 @@ impl Runnable for TrashinatorRobot {
             self.discover_tiles_and_populate_pq(world);
         }
 
+        // self.discover_tiles_and_populate_pq(world);
+
         self.determine_current_task();
         self.execute_task(world);
     }

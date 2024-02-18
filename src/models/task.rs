@@ -21,7 +21,7 @@ impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Task(action: {}, coordinates: ({}, {}))",
+            "Task(action: {:?}, coordinates: ({}, {}))",
             self.action, self.coordinates.0, self.coordinates.1
         )
     }
@@ -42,11 +42,5 @@ impl TaskAction {
             TaskAction::DestroyGarbage => 50,
             TaskAction::PutGarbageInBin => 1,
         }
-    }
-}
-
-impl Display for TaskAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
     }
 }

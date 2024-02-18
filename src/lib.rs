@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::thread::sleep;
+use std::time::Duration;
 use robotics_lib::event::events::Event;
 use robotics_lib::runner::{Robot, Runner};
 use robotics_lib::world::tile::Tile;
@@ -36,6 +38,7 @@ impl WrapperTrashinatorRobot {
 
     pub fn ai_process_tick(&mut self) -> (bool, Vec<Event>, Vec<(Tile, (usize, usize))>) {
         self.runner.game_tick();
+        sleep(Duration::from_millis(100));
 
         let terminated = self.state.borrow().terminate;
         let events = self.state.borrow().events_of_tick.clone();

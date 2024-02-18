@@ -58,7 +58,7 @@ impl TrashinatorRobot {
                         let action_row = self.get_coordinate().get_row() + row - 1;
                         let action_col = self.get_coordinate().get_col() + col - 1;
 
-                        self.state.clone().borrow_mut().discovered_tiles.push((tile.clone(), (action_row, action_col)));
+                        self.state.borrow_mut().discovered_tiles.push((tile.clone(), (action_row, action_col)));
 
                         self.populate_pq(tile, (action_row, action_col));
                     }
@@ -81,13 +81,13 @@ impl TrashinatorRobot {
                     for (y, tile) in row_tiles.iter().enumerate() {
                         let (row, col) = match direction {
                             Direction::Up => {
-                                let row = self.get_coordinate().get_row() + y + 1;
+                                let row = self.get_coordinate().get_row() - y - 1;
                                 let col = self.get_coordinate().get_col() + x - 1;
 
                                 (row, col)
                             }
                             Direction::Down => {
-                                let row = self.get_coordinate().get_row() - y - 1;
+                                let row = self.get_coordinate().get_row() + y + 1;
                                 let col = self.get_coordinate().get_col() + x - 1;
 
                                 (row, col)
@@ -106,12 +106,12 @@ impl TrashinatorRobot {
                             }
                         };
 
-                        self.state.clone().borrow_mut().discovered_tiles.push((tile.clone(), (row, col)));
+                        self.state.borrow_mut().discovered_tiles.push((tile.clone(), (row, col)));
                         self.populate_pq(tile, (row, col));
                     }
                 }
             }
-            Err(e) => error!("Failed to look in one direction: {:?}", e),
+            Err(e) => println!("Failed to look in one direction: {:?}", e),
         };
     }
 
@@ -122,7 +122,7 @@ impl TrashinatorRobot {
         }
 
         if let Some(task) = &self.current_task {
-            debug!("Determined current task: {}", task);
+            println!("Determined current task: {}", task);
         }
     }
 
@@ -162,13 +162,13 @@ impl TrashinatorRobot {
 
                     match teleport_res {
                         Ok(_) => {
-                            debug!(
+                            println!(
                                 "Teleported to coordinates {}, {}",
                                 coordinates.0, coordinates.1
                             );
                             return;
                         }
-                        Err(e) => error!("Failed to teleport: {:?}", e),
+                        Err(e) => println!("Failed to teleport: {:?}", e),
                     }
                 }
 
@@ -178,15 +178,15 @@ impl TrashinatorRobot {
                 let go_res = go(self, world, direction.clone());
 
                 match go_res {
-                    Ok(_) => debug!("Moved {:?}", direction),
+                    Ok(_) => println!("Moved {:?}", direction),
                     Err(e) => {
-                        error!("Failed go to direction {:?}: {:?}", direction, e);
+                        println!("Failed go to direction {:?}: {:?}", direction, e);
                     }
                 };
             }
             Some(task) => match self.determine_action_to_perform_task(task) {
                 Ok((execute, direction)) => {
-                    debug!(
+                    println!(
                         "Determined action to perform, execute: {}, direction: {:?}",
                         execute, direction
                     );
@@ -208,9 +208,9 @@ impl TrashinatorRobot {
 
                                         match res {
                                             Ok(_) => {
-                                                debug!("Put garbage in bin at {:?}", direction);
+                                                println!("Put garbage in bin at {:?}", direction);
                                             }
-                                            Err(e) => error!(
+                                            Err(e) => println!(
                                                 "Failed putting garbage in bin at {:?}: {:?}",
                                                 direction, e
                                             ),
@@ -223,9 +223,9 @@ impl TrashinatorRobot {
 
                                 match res {
                                     Ok(_) => {
-                                        debug!("Destroyed {:?}", direction);
+                                        println!("Destroyed {:?}", direction);
                                     }
-                                    Err(e) => error!("Failed destroy at {:?}: {:?}", direction, e),
+                                    Err(e) => println!("Failed destroy at {:?}: {:?}", direction, e),
                                 }
                             }
                         };
@@ -236,13 +236,13 @@ impl TrashinatorRobot {
 
                         match res {
                             Ok(_) => {
-                                debug!("Moved {:?}", direction);
+                                println!("Moved {:?}", direction);
                             }
-                            Err(e) => error!("Failed go to {:?}: {:?}", direction, e),
+                            Err(e) => println!("Failed go to {:?}: {:?}", direction, e),
                         }
                     };
                 }
-                Err(_) => error!("Failed determining task to perform"),
+                Err(_) => println!("Failed determining task to perform"),
             },
         }
     }
@@ -283,7 +283,7 @@ impl TrashinatorRobot {
             (down_random, Direction::Down),
         ];
 
-        debug!("Calculating randoms with vec: {:?}", vec_of_randoms);
+        println!("Calculating randoms with vec: {:?}", vec_of_randoms);
 
         let mut max = -1;
         let mut direction = Direction::Left;
@@ -302,12 +302,11 @@ impl TrashinatorRobot {
     fn populate_pq(&mut self, tile: &Tile, coordinate: (usize, usize)) {
         let charted_coordinates = &ChartedCoordinate::new(coordinate.0, coordinate.1);
 
-        if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true)
-        {
+        if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true) {
             self
                 .charted_map
                 .save(&tile.tile_type, charted_coordinates);
-            debug!("Saved teleport tile at coordinates {}", charted_coordinates)
+            println!("Saved teleport tile at coordinates {}", charted_coordinates)
         }
 
         let action = match tile.content {
@@ -318,7 +317,7 @@ impl TrashinatorRobot {
                 .get_contents()
                 .get(&Garbage(0))
                 .map(|garbage| {
-                    if garbage.to_owned() > 5 {
+                    if *garbage > 5 {
                         Some(TaskAction::PutGarbageInBin)
                     } else {
                         None
@@ -335,12 +334,12 @@ impl TrashinatorRobot {
                 let priority = action.get_priority_for_task();
                 let task = Task::new(action, (coordinate.0, coordinate.1));
 
-                debug!("Added task to pq: {}", task);
+                println!("Added task to pq: {:?}", task);
 
                 self.pq.push(task, priority);
             }
         } else {
-            debug!("Didn't detect any task")
+            // println!("Didn't detect any task")
         }
     }
 
