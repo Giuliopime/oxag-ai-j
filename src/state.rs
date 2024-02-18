@@ -17,26 +17,14 @@ use robotics_lib::event::events::Event;
 /// - previous_move_direction: direction to which the robot moved in the last process tick
 /// - previous_one_directional_view_direction: direction in which the robot looked using the one directional view in the last process tick
 pub(crate) struct AiState {
-    pub(crate) pq: PriorityQueue<Task, usize>,
-    pub(crate) current_task: Option<Task>,
-    pub(crate) marked_coords: HashSet<ChartedCoordinate>,
-    pub(crate) charted_map: ChartedMap<TileType>,
-    pub(crate) previous_move_direction: Option<Direction>,
-    pub(crate) previous_one_directional_view_direction: Option<Direction>,
-    pub(crate) events_of_tick: Vec<Event>,
-    pub(crate) discovered_tiles: Vec<(Tile, (usize, usize))>,
-    pub(crate) terminate: bool
+    pub events_of_tick: Vec<Event>,
+    pub discovered_tiles: Vec<(Tile, (usize, usize))>,
+    pub terminate: bool
 }
 
 impl AiState {
     pub(crate) fn new() -> AiState {
         AiState {
-            pq: PriorityQueue::new(),
-            current_task: None,
-            marked_coords: HashSet::new(),
-            charted_map: ChartingTools::tool::<ChartedMap<TileType>>().unwrap(),
-            previous_move_direction: None,
-            previous_one_directional_view_direction: None,
             events_of_tick: vec![],
             discovered_tiles: vec![],
             terminate: false

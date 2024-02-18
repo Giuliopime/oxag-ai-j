@@ -25,7 +25,7 @@ On each process tick the ai performs the following actions:
 1. Detect: scan for near content using either `robot_view` or `one_direction_view` (this has some randomness and some logic related to the energy level of the robot)   
     |--> found fire: insert in PQ with P1  
     |--> found garbage: insert in PQ with P2  
-    |--> found bin: check whether the robot has garbage to put, if so insert in PQ with P3 
+    |--> found bin: check whether the robot has garbage to put, if so insert in PQ with P3   
     |--> found teleport: store in charted_map tool
 2. Determine `current_task`: checks whether the `current_task` is set, if not pops the queue to get the task with most priority and sets it to the `current_task`
 3. Execute: navigate to coordinates and execute the task. If the current_task is missing (meaning the queue was empty) then the robot will call the `go` function to move trough the map in a random way, still avoiding to go back to where it came from most of the times (it might also use teleports when elegible).   

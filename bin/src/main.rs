@@ -5,19 +5,14 @@ use std::time::Duration;
 use env_logger::init_from_env;
 use worldgen_unwrap::public::WorldgeneratorUnwrap;
 use env_logger::Builder;
+use oxag_ai_j::WrapperTrashinatorRobot;
 
 fn main() {
     // Builder::new().filter_level(LevelFilter::max()).init();
-    let ai_robot = TrashinatorRobot::new(Robot::new());
-
-    let mut gen = WorldgeneratorUnwrap::init(false, None);
-
-    println!("Running!");
-
-    let mut run = Runner::new(Box::new(ai_robot), &mut gen).unwrap();
+    let mut ai_robot = WrapperTrashinatorRobot::new();
 
     let _ = loop {
-        let _ = run.game_tick();
+        let _ = ai_robot.ai_process_tick();
         sleep(Duration::from_millis(1000));
         println!("-----------------");
     };

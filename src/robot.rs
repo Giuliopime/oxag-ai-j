@@ -1,9 +1,14 @@
 use std::cell::{Ref, RefCell};
+use std::collections::HashSet;
+use std::ptr::copy_nonoverlapping;
 use std::rc::Rc;
 use crate::models::task::{Task, TaskAction};
 use crate::state::AiState;
 use charting_tools::charted_coordinate::ChartedCoordinate;
+use charting_tools::charted_map::ChartedMap;
+use charting_tools::ChartingTools;
 use log::{debug, error};
+use priority_queue::PriorityQueue;
 use rand::Rng;
 use robotics_lib::interface::{
     destroy, go, one_direction_view, put, robot_view, teleport, Direction,
@@ -16,30 +21,31 @@ use robotics_lib::world::World;
 /// A fully functioning AI driven robot that cleans up garbage and extinguishes fire
 pub struct TrashinatorRobot {
     pub robot: Robot,
-    pub(crate) state: Rc<RefCell<AiState>>,
+    pub state: Rc<RefCell<AiState>>,
+    pub(crate) pq: PriorityQueue<Task, usize>,
+    pub(crate) current_task: Option<Task>,
+    pub(crate) marked_coords: HashSet<ChartedCoordinate>,
+    pub(crate) charted_map: ChartedMap<TileType>,
+    pub(crate) previous_move_direction: Option<Direction>,
+    pub(crate) previous_one_directional_view_direction: Option<Direction>,
 }
 
 impl TrashinatorRobot {
-    pub fn new(robot: Robot) -> TrashinatorRobot {
+    pub fn new(robot: Robot, state: Rc<RefCell<AiState>>) -> TrashinatorRobot {
         TrashinatorRobot {
             robot,
-            state: Rc::new(RefCell::new(AiState::new())),
+            state,
+            pq: PriorityQueue::new(),
+            current_task: None,
+            marked_coords: HashSet::new(),
+            charted_map: ChartingTools::tool::<ChartedMap<TileType>>().unwrap(),
+            previous_move_direction: None,
+            previous_one_directional_view_direction: None,
         }
     }
 }
 
-impl Default for TrashinatorRobot {
-    fn default() -> Self {
-        TrashinatorRobot::new(Robot::new())
-    }
-}
-
 impl TrashinatorRobot {
-    /// Properly sets the state for a new process tick
-    pub(crate) fn prepare_for_new_tick(&mut self) {
-        self.state.clone().borrow_mut().discovered_tiles = vec![];
-        self.state.clone().borrow_mut().events_of_tick = vec![];
-    }
     /// Discovers new tiles and populates the pq
     pub(crate) fn discover_tiles_and_populate_pq(&mut self, world: &mut World) {
         let view = robot_view(self, world);
@@ -64,7 +70,7 @@ impl TrashinatorRobot {
     /// Discovers new tiles using the one directional view and populates the pq
     pub(crate) fn discover_tiles_one_direction_and_populate_pq(&mut self, world: &mut World) {
         let direction = Self::calculate_random_direction_with_weighted_previous_direction(
-            &self.state.borrow().previous_one_directional_view_direction,
+            &self.previous_one_directional_view_direction,
         );
 
         let view = one_direction_view(self, world, direction.clone(), 4);
@@ -110,28 +116,30 @@ impl TrashinatorRobot {
     }
 
     pub(crate) fn determine_current_task(&mut self) {
-        if self.state.clone().borrow().current_task.is_none() {
-            let new_task = self.state.clone().borrow_mut().pq.pop().map(|(task, _)| task);
-            self.state.clone().borrow_mut().current_task = new_task;
+        if self.current_task.is_none() {
+            let new_task = self.pq.pop().map(|(task, _)| task);
+            self.current_task = new_task;
         }
 
-        if let Some(task) = &self.state.clone().borrow().current_task {
+        if let Some(task) = &self.current_task {
             debug!("Determined current task: {}", task);
         }
     }
 
     /// Executes the current task
     pub(crate) fn execute_task(&mut self, world: &mut World) {
-        match &self.state.clone().borrow().current_task {
+        let current_task = &self.current_task;
+
+        match current_task {
             None => {
                 let current_coordinates = self.get_coordinate();
                 let current_row = current_coordinates.get_row();
                 let current_col = current_coordinates.get_col();
 
                 // TODO: Check
-                let cloned_state = self.state.clone();
-                let state = cloned_state.borrow_mut();
-                let teleports = state.charted_map.get(&TileType::Teleport(true));
+                // let cloned_state = self.state.clone();
+                // let state = cloned_state.borrow_mut();
+                let teleports = self.charted_map.get(&TileType::Teleport(true));
                 let mut target_telepor_coordinates = None;
 
                 if let Some(teleports) = teleports {
@@ -165,7 +173,7 @@ impl TrashinatorRobot {
                 }
 
                 let direction = Self::calculate_random_direction_with_weighted_previous_direction(
-                    &self.state.clone().borrow().previous_move_direction,
+                    &self.previous_move_direction,
                 );
                 let go_res = go(self, world, direction.clone());
 
@@ -222,7 +230,7 @@ impl TrashinatorRobot {
                             }
                         };
 
-                        self.state.clone().borrow_mut().current_task = None;
+                        self.current_task = None;
                     } else {
                         let res = go(self, world, direction.clone());
 
@@ -296,9 +304,7 @@ impl TrashinatorRobot {
 
         if tile.tile_type == TileType::Teleport(false) || tile.tile_type == TileType::Teleport(true)
         {
-            self.state
-                .clone()
-                .borrow_mut()
+            self
                 .charted_map
                 .save(&tile.tile_type, charted_coordinates);
             debug!("Saved teleport tile at coordinates {}", charted_coordinates)
@@ -323,15 +329,15 @@ impl TrashinatorRobot {
         };
 
         if let Some(action) = action {
-            if !self.state.clone().borrow().marked_coords.contains(charted_coordinates) {
-                self.state.clone().borrow_mut().marked_coords.insert(charted_coordinates.clone());
+            if !self.marked_coords.contains(charted_coordinates) {
+                self.marked_coords.insert(charted_coordinates.clone());
 
                 let priority = action.get_priority_for_task();
                 let task = Task::new(action, (coordinate.0, coordinate.1));
 
                 debug!("Added task to pq: {}", task);
 
-                self.state.clone().borrow_mut().pq.push(task, priority);
+                self.pq.push(task, priority);
             }
         } else {
             debug!("Didn't detect any task")

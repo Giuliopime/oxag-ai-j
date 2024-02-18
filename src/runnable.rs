@@ -9,8 +9,6 @@ use crate::robot::TrashinatorRobot;
 
 impl Runnable for TrashinatorRobot {
     fn process_tick(&mut self, world: &mut World) {
-        self.prepare_for_new_tick();
-
         let energy = self.get_energy().get_energy_level();
 
         if energy > 50 && energy % 2 == 0 {
@@ -19,8 +17,8 @@ impl Runnable for TrashinatorRobot {
             self.discover_tiles_and_populate_pq(world);
         }
 
-        // self.determine_current_task(state);
-        // self.execute_task(world, state);
+        self.determine_current_task();
+        self.execute_task(world);
     }
 
     fn handle_event(&mut self, event: Event) {
