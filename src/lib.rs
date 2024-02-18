@@ -15,6 +15,9 @@ pub mod robot;
 mod state;
 mod runnable;
 
+/// A wrapper for a fully functioning AI driven robot that cleans up garbage and extinguishes fire
+///
+/// This also exposes useful data for visualizers
 pub struct WrapperTrashinatorRobot {
     runner: Runner,
     state: Rc<RefCell<AiState>>,
@@ -36,16 +39,26 @@ impl WrapperTrashinatorRobot {
         }
     }
 
+    /// Performs a process tick
+    ///
+    /// Returns a tuple containing:
+    /// - a bool that indicates whether the ai robot has terminated
+    /// - a `Vec` of all `Event`s occurred in the process tick
+    /// - a `Vec` of `(Tile, (usize, usize))` with all the discovered tiles and relative coordinates for the process tick
     pub fn ai_process_tick(&mut self) -> (bool, Vec<Event>, Vec<(Tile, (usize, usize))>) {
-        self.runner.game_tick();
-        sleep(Duration::from_millis(100));
+        // Reset the state to prepare for the process tick
+        self.state.borrow_mut().discovered_tiles = vec![];
+        self.state.borrow_mut().events_of_tick = vec![];
 
+        // Execute the process tick
+        self.runner.game_tick();
+
+        sleep(Duration::from_millis(500));
+
+        // Return data usable by the visualizer
         let terminated = self.state.borrow().terminate;
         let events = self.state.borrow().events_of_tick.clone();
         let tiles = self.state.borrow().discovered_tiles.clone();
-
-        self.state.borrow_mut().discovered_tiles = vec![];
-        self.state.borrow_mut().events_of_tick = vec![];
 
         return (terminated, events, tiles);
     }

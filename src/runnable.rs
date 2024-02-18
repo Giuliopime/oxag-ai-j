@@ -17,14 +17,12 @@ impl Runnable for TrashinatorRobot {
             self.discover_tiles_and_populate_pq(world);
         }
 
-        // self.discover_tiles_and_populate_pq(world);
-
         self.determine_current_task();
         self.execute_task(world);
     }
 
     fn handle_event(&mut self, event: Event) {
-        info!("Event - {}", event);
+        println!("Event - {}", event);
         self.state.borrow_mut().events_of_tick.push(event);
     }
     fn get_energy(&self) -> &Energy {

@@ -19,6 +19,15 @@ use robotics_lib::world::tile::{Tile, TileType};
 use robotics_lib::world::World;
 
 /// A fully functioning AI driven robot that cleans up garbage and extinguishes fire
+/// Properties:
+/// - robot: the actual `Robot`
+/// - state: the state for storing useful data for a visualizer
+/// - pq: priority queue that stores tasks to execute
+/// - current_task: the current task that must be completed
+/// - marked_coords: the coordinates that have already been analyzed for tasks
+/// - charted_map: tool used to store location of teleporters
+/// - previous_move_direction: direction to which the robot moved in the last process tick
+/// - previous_one_directional_view_direction: direction in which the robot looked using the one directional view in the last process tick
 pub struct TrashinatorRobot {
     pub robot: Robot,
     pub state: Rc<RefCell<AiState>>,
@@ -115,6 +124,7 @@ impl TrashinatorRobot {
         };
     }
 
+    /// Calculates the current task to execute
     pub(crate) fn determine_current_task(&mut self) {
         if self.current_task.is_none() {
             let new_task = self.pq.pop().map(|(task, _)| task);
@@ -247,6 +257,7 @@ impl TrashinatorRobot {
         }
     }
 
+    /// Calculates a direction in mix of deterministic and random logic based on the previously used `Direction`
     fn calculate_random_direction_with_weighted_previous_direction(
         previous: &Option<Direction>,
     ) -> Direction {

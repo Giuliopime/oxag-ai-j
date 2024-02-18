@@ -8,15 +8,13 @@ use robotics_lib::world::tile::{Tile, TileType};
 use std::collections::HashSet;
 use robotics_lib::event::events::Event;
 
-/// State required for the AI to take decisions
+/// State that should be consumed by a visualizer
 ///
 /// Properties:
-/// - pq: priority queue that stores tasks to execute
-/// - current_task: the current task that must be completed
-/// - marked_coords: the coordinates that have already been analyzed for tasks
-/// - previous_move_direction: direction to which the robot moved in the last process tick
-/// - previous_one_directional_view_direction: direction in which the robot looked using the one directional view in the last process tick
-pub(crate) struct AiState {
+/// - events_of_tick: the events occurred in a process tick
+/// - discovered_tiles: all discovered tiles during the process tick
+/// - terminate: whether the robot has completed its goal
+pub struct AiState {
     pub events_of_tick: Vec<Event>,
     pub discovered_tiles: Vec<(Tile, (usize, usize))>,
     pub terminate: bool
