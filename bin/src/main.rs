@@ -1,19 +1,19 @@
-use oxag_ai_j::robot::TrashinatorRobot;
-use robotics_lib::runner::{Robot, Runner};
-use std::thread::sleep;
-use std::time::Duration;
-use env_logger::init_from_env;
-use worldgen_unwrap::public::WorldgeneratorUnwrap;
-use env_logger::Builder;
 use oxag_ai_j::WrapperTrashinatorRobot;
+use env_logger::Env;
 
 fn main() {
-    // Builder::new().filter_level(LevelFilter::max()).init();
-    let mut ai_robot = WrapperTrashinatorRobot::new();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
+        .format_timestamp(None)
+        .format_target(false)
+        .init();
 
-    let _ = loop {
-        let _ = ai_robot.ai_process_tick();
-        sleep(Duration::from_millis(1000));
+    let mut ai_robot = WrapperTrashinatorRobot::new(10);
+
+    let mut done = false;
+
+    while !done {
         println!("-----------------");
+        let res = ai_robot.ai_process_tick();
+        done = res.0;
     };
 }
