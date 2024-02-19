@@ -7,12 +7,12 @@ fn main() {
         .format_target(false)
         .init();
 
-    let mut ai_robot = WrapperTrashinatorRobot::new(10);
+    let mut ai_robot = WrapperTrashinatorRobot::new(20);
 
     let mut done = false;
 
     while !done {
-        println!("-----------------");
+        println!("-----------------------------------------------------------------------------------------------");
         let res = ai_robot.ai_process_tick();
         done = res.0;
     };
