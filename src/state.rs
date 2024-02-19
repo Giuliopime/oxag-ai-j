@@ -1,11 +1,4 @@
-use crate::models::task::Task;
-use charting_tools::charted_coordinate::ChartedCoordinate;
-use charting_tools::charted_map::ChartedMap;
-use charting_tools::ChartingTools;
-use priority_queue::PriorityQueue;
-use robotics_lib::interface::Direction;
-use robotics_lib::world::tile::{Tile, TileType};
-use std::collections::HashSet;
+use robotics_lib::world::tile::Tile;
 use robotics_lib::event::events::Event;
 
 /// State that should be consumed by a visualizer

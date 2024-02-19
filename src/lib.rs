@@ -5,7 +5,6 @@ use std::time::Duration;
 use robotics_lib::event::events::Event;
 use robotics_lib::runner::{Robot, Runner};
 use robotics_lib::world::tile::Tile;
-use robotics_lib::world::world_generator::{Generator, World};
 use worldgen_unwrap::public::WorldgeneratorUnwrap;
 use crate::robot::TrashinatorRobot;
 use crate::state::AiState;
@@ -21,21 +20,22 @@ mod runnable;
 pub struct WrapperTrashinatorRobot {
     runner: Runner,
     state: Rc<RefCell<AiState>>,
-    world_generator: WorldgeneratorUnwrap
+    _world_generator: WorldgeneratorUnwrap
 }
 
 impl WrapperTrashinatorRobot {
-    pub fn new() -> WrapperTrashinatorRobot {
+    /// Creates a new `WrapperTrashinatorRobot` that will stop after completing `tasks_to_complete` tasks
+    pub fn new(tasks_to_complete: usize) -> WrapperTrashinatorRobot {
         let mut world_generator = WorldgeneratorUnwrap::init(false, None);
 
         let state = Rc::new(RefCell::new(AiState::new()));
-        let runner = TrashinatorRobot::new(Robot::new(), state.clone());
+        let runner = TrashinatorRobot::new(Robot::new(), state.clone(), tasks_to_complete);
         let runner = Runner::new(Box::new(runner), &mut world_generator).unwrap();
 
         WrapperTrashinatorRobot {
             runner,
             state,
-            world_generator
+            _world_generator: world_generator
         }
     }
 
@@ -51,7 +51,7 @@ impl WrapperTrashinatorRobot {
         self.state.borrow_mut().events_of_tick = vec![];
 
         // Execute the process tick
-        self.runner.game_tick();
+        let _ = self.runner.game_tick();
 
         sleep(Duration::from_millis(500));
 

@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 use robotics_lib::energy::Energy;
 use robotics_lib::event::events::Event;
 use robotics_lib::runner::backpack::BackPack;
@@ -9,6 +9,9 @@ use crate::robot::TrashinatorRobot;
 
 impl Runnable for TrashinatorRobot {
     fn process_tick(&mut self, world: &mut World) {
+        let coordinates = self.get_coordinate();
+        debug!("Current coordinates: {:?}", coordinates);
+
         let energy = self.get_energy().get_energy_level();
 
         if energy > 50 && energy % 2 == 0 {
@@ -19,10 +22,14 @@ impl Runnable for TrashinatorRobot {
 
         self.determine_current_task();
         self.execute_task(world);
+
+        if self.tasks_completed >= self.tasks_to_complete {
+            self.state.borrow_mut().terminate = true;
+        }
     }
 
     fn handle_event(&mut self, event: Event) {
-        println!("Event - {}", event);
+        // debug!("Event - {}", event);
         self.state.borrow_mut().events_of_tick.push(event);
     }
     fn get_energy(&self) -> &Energy {

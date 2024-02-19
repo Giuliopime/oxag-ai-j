@@ -1,17 +1,17 @@
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::collections::HashSet;
-use std::ptr::copy_nonoverlapping;
 use std::rc::Rc;
+use bob_lib::enhanced_map::{bob_view, BobMap};
 use crate::models::task::{Task, TaskAction};
 use crate::state::AiState;
 use charting_tools::charted_coordinate::ChartedCoordinate;
 use charting_tools::charted_map::ChartedMap;
 use charting_tools::ChartingTools;
-use log::{debug, error};
+use log::{debug, error, info};
 use priority_queue::PriorityQueue;
 use rand::Rng;
 use robotics_lib::interface::{
-    destroy, go, one_direction_view, put, robot_view, teleport, Direction,
+    destroy, go, one_direction_view, put, teleport, Direction,
 };
 use robotics_lib::runner::{Robot, Runnable};
 use robotics_lib::world::tile::Content::{Bin, Fire, Garbage};
@@ -28,6 +28,8 @@ use robotics_lib::world::World;
 /// - charted_map: tool used to store location of teleporters
 /// - previous_move_direction: direction to which the robot moved in the last process tick
 /// - previous_one_directional_view_direction: direction in which the robot looked using the one directional view in the last process tick
+/// - tasks_completed
+/// - tasks_to_complete: set externally by users
 pub struct TrashinatorRobot {
     pub robot: Robot,
     pub state: Rc<RefCell<AiState>>,
@@ -37,10 +39,12 @@ pub struct TrashinatorRobot {
     pub(crate) charted_map: ChartedMap<TileType>,
     pub(crate) previous_move_direction: Option<Direction>,
     pub(crate) previous_one_directional_view_direction: Option<Direction>,
+    pub(crate) tasks_completed: usize,
+    pub(crate) tasks_to_complete: usize
 }
 
 impl TrashinatorRobot {
-    pub fn new(robot: Robot, state: Rc<RefCell<AiState>>) -> TrashinatorRobot {
+    pub fn new(robot: Robot, state: Rc<RefCell<AiState>>, tasks_to_complete: usize) -> TrashinatorRobot {
         TrashinatorRobot {
             robot,
             state,
@@ -50,6 +54,8 @@ impl TrashinatorRobot {
             charted_map: ChartingTools::tool::<ChartedMap<TileType>>().unwrap(),
             previous_move_direction: None,
             previous_one_directional_view_direction: None,
+            tasks_completed: 0,
+            tasks_to_complete
         }
     }
 }
@@ -57,19 +63,18 @@ impl TrashinatorRobot {
 impl TrashinatorRobot {
     /// Discovers new tiles and populates the pq
     pub(crate) fn discover_tiles_and_populate_pq(&mut self, world: &mut World) {
-        let view = robot_view(self, world);
+        let mut bob_map = BobMap::init(world);
 
-        for (row, row_tiles) in view.iter().enumerate() {
-            for (col, col_tile) in row_tiles.iter().enumerate() {
-                match col_tile {
+        let view = bob_view(self, world, &mut bob_map);
+
+        for row in view.iter() {
+            for col in row.iter() {
+                match &col.0 {
                     None => {}
                     Some(tile) => {
-                        let action_row = self.get_coordinate().get_row() + row - 1;
-                        let action_col = self.get_coordinate().get_col() + col - 1;
+                        self.state.borrow_mut().discovered_tiles.push((tile.clone(), (col.1, col.2)));
 
-                        self.state.borrow_mut().discovered_tiles.push((tile.clone(), (action_row, action_col)));
-
-                        self.populate_pq(tile, (action_row, action_col));
+                        self.populate_pq(tile,  (col.1, col.2));
                     }
                 }
             }
@@ -90,14 +95,14 @@ impl TrashinatorRobot {
                     for (y, tile) in row_tiles.iter().enumerate() {
                         let (row, col) = match direction {
                             Direction::Up => {
-                                let row = self.get_coordinate().get_row() - y - 1;
-                                let col = self.get_coordinate().get_col() + x - 1;
+                                let row = self.get_coordinate().get_row() - x - 1;
+                                let col = self.get_coordinate().get_col() + y - 1;
 
                                 (row, col)
                             }
                             Direction::Down => {
-                                let row = self.get_coordinate().get_row() + y + 1;
-                                let col = self.get_coordinate().get_col() + x - 1;
+                                let row = self.get_coordinate().get_row() + x + 1;
+                                let col = self.get_coordinate().get_col() + y - 1;
 
                                 (row, col)
                             }
@@ -120,8 +125,23 @@ impl TrashinatorRobot {
                     }
                 }
             }
-            Err(e) => println!("Failed to look in one direction: {:?}", e),
+            Err(e) => error!("Failed to look in one direction: {:?}", e),
         };
+
+        // let mut bob_map = BobMap::init(world);
+        // let view = bob_one_direction_view(self, world, direction.clone(), 4, &mut bob_map);
+        //
+        // match view {
+        //     Ok(view) => {
+        //         for row_tiles in view.iter() {
+        //             for tile in row_tiles.iter() {
+        //                 self.state.borrow_mut().discovered_tiles.push((tile.0.clone(), (tile.1, tile.2)));
+        //                 self.populate_pq(&tile.0, (tile.1, tile.2));
+        //             }
+        //         }
+        //     }
+        //     Err(e) => error!("Failed to look in one direction: {:?}", e),
+        // };
     }
 
     /// Calculates the current task to execute
@@ -132,7 +152,7 @@ impl TrashinatorRobot {
         }
 
         if let Some(task) = &self.current_task {
-            println!("Determined current task: {}", task);
+            debug!("Determined current task: {}", task);
         }
     }
 
@@ -146,9 +166,6 @@ impl TrashinatorRobot {
                 let current_row = current_coordinates.get_row();
                 let current_col = current_coordinates.get_col();
 
-                // TODO: Check
-                // let cloned_state = self.state.clone();
-                // let state = cloned_state.borrow_mut();
                 let teleports = self.charted_map.get(&TileType::Teleport(true));
                 let mut target_telepor_coordinates = None;
 
@@ -172,13 +189,13 @@ impl TrashinatorRobot {
 
                     match teleport_res {
                         Ok(_) => {
-                            println!(
+                            debug!(
                                 "Teleported to coordinates {}, {}",
                                 coordinates.0, coordinates.1
                             );
                             return;
                         }
-                        Err(e) => println!("Failed to teleport: {:?}", e),
+                        Err(e) => error!("Failed to teleport: {:?}", e),
                     }
                 }
 
@@ -188,15 +205,15 @@ impl TrashinatorRobot {
                 let go_res = go(self, world, direction.clone());
 
                 match go_res {
-                    Ok(_) => println!("Moved {:?}", direction),
+                    Ok(_) => debug!("Moved {:?}", direction),
                     Err(e) => {
-                        println!("Failed go to direction {:?}: {:?}", direction, e);
+                        error!("Failed go to direction {:?}: {:?}", direction, e);
                     }
                 };
             }
             Some(task) => match self.determine_action_to_perform_task(task) {
                 Ok((execute, direction)) => {
-                    println!(
+                    debug!(
                         "Determined action to perform, execute: {}, direction: {:?}",
                         execute, direction
                     );
@@ -218,9 +235,10 @@ impl TrashinatorRobot {
 
                                         match res {
                                             Ok(_) => {
-                                                println!("Put garbage in bin at {:?}", direction);
+                                                self.tasks_completed += 1;
+                                                info!("Put garbage in bin at {:?}", direction);
                                             }
-                                            Err(e) => println!(
+                                            Err(e) => error!(
                                                 "Failed putting garbage in bin at {:?}: {:?}",
                                                 direction, e
                                             ),
@@ -233,9 +251,10 @@ impl TrashinatorRobot {
 
                                 match res {
                                     Ok(_) => {
-                                        println!("Destroyed {:?}", direction);
+                                        self.tasks_completed += 1;
+                                        info!("Destroyed {:?}", direction);
                                     }
-                                    Err(e) => println!("Failed destroy at {:?}: {:?}", direction, e),
+                                    Err(e) => error!("Failed destroy at {:?}: {:?}", direction, e),
                                 }
                             }
                         };
@@ -246,13 +265,13 @@ impl TrashinatorRobot {
 
                         match res {
                             Ok(_) => {
-                                println!("Moved {:?}", direction);
+                                debug!("Moved {:?}", direction);
                             }
-                            Err(e) => println!("Failed go to {:?}: {:?}", direction, e),
+                            Err(e) => error!("Failed go to {:?}: {:?}", direction, e),
                         }
                     };
                 }
-                Err(_) => println!("Failed determining task to perform"),
+                Err(_) => debug!("Failed determining task to perform"),
             },
         }
     }
@@ -294,8 +313,6 @@ impl TrashinatorRobot {
             (down_random, Direction::Down),
         ];
 
-        println!("Calculating randoms with vec: {:?}", vec_of_randoms);
-
         let mut max = -1;
         let mut direction = Direction::Left;
 
@@ -317,7 +334,7 @@ impl TrashinatorRobot {
             self
                 .charted_map
                 .save(&tile.tile_type, charted_coordinates);
-            println!("Saved teleport tile at coordinates {}", charted_coordinates)
+            debug!("Saved teleport tile at coordinates {}", charted_coordinates)
         }
 
         let action = match tile.content {
@@ -345,7 +362,7 @@ impl TrashinatorRobot {
                 let priority = action.get_priority_for_task();
                 let task = Task::new(action, (coordinate.0, coordinate.1));
 
-                println!("Added task to pq: {:?}", task);
+                debug!("Added task to pq: {:?}", task);
 
                 self.pq.push(task, priority);
             }
