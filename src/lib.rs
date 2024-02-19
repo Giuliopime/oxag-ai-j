@@ -53,8 +53,6 @@ impl WrapperTrashinatorRobot {
         // Execute the process tick
         let _ = self.runner.game_tick();
 
-        sleep(Duration::from_millis(500));
-
         // Return data usable by the visualizer
         let terminated = self.state.borrow().terminate;
         let events = self.state.borrow().events_of_tick.clone();
